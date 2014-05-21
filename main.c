@@ -4,6 +4,8 @@
 #include<math.h>
 #include<time.h>
 #include<stdbool.h>
+#include<sys/stat.h>
+char fileHighScore[14];
 
 struct player
 {
@@ -29,9 +31,50 @@ void clrscr()
 	refresh();
 }
 
+void scoreFileTest()
+{
+	FILE *highScore;
+	int exists;
+	#ifdef _WIN32
+		struct _stat fileTest;
+		exists = _stat(fileHighScore, &fileTest);
+	#else
+		struct stat fileTest;
+		exists = stat(fileHighScore, &fileTest);
+	#endif
+	if (exists < 0)
+	{
+		highScore = fopen(fileHighScore, "w");
+	}
+}
+
+void viewHighScore()
+{
+	FILE *highScore;
+	char printHighScore[120];
+	scoreFileTest();
+	highScore = fopen(fileHighScore, "r");
+	clrscr();
+	printw("Simple Figures high score log:\n");
+	while (fgets(printHighScore, 120, highScore) != NULL)
+	{
+		printw("%s", printHighScore);
+		#ifdef _WIN32
+			Sleep(70);
+		#else
+			usleep(70000);
+		#endif
+		if (!strcmp(printHighScore, "\n"))
+			refresh();
+	}
+	fclose(highScore);
+	pressContinue();
+}
+
 struct player playGame()
 {
 	struct player gamePlayer;
+	FILE *highScore;
 	int loopVar;
 	int randomVar = 0;
 	double value1 = 0, value2 = 0;
@@ -39,11 +82,13 @@ struct player playGame()
 	char operator;
 	char gameMessage[64];
 	char flt1[32], flt2[32];
+	char highScoreText[64];
     time_t gameStart;
     time_t gameStop;
 	srand(time(NULL));
 	gamePlayer.score = 0;
 	clrscr();
+	printw("\nSimple Figures: New Game!\n");
 	printw("Please input your name:\n");
 	refresh();
 	getstr(gamePlayer.name);
@@ -76,9 +121,7 @@ struct player playGame()
 		clrscr();
 		printw("Simple Figures!");
 		printw("\n%s", gameMessage);
-		//printw("\nQuestion number %i: ", loopVar + 1);
-		//randomVar = rand() % 4;
-		randomVar = 3;
+		randomVar = rand() % 4;
 		value1 = rand() % gamePlayer.difficulty + 1;
 		value2 = rand() % gamePlayer.difficulty + 1;
 		if (randomVar == 0)
@@ -106,7 +149,7 @@ struct player playGame()
 			answer = value1 / value2;
 		}
 		answer = floorf(answer * 100 + 0.5) / 100;
-		printw("\n%.0f %c %.0f = ?\nAnswer: %lf\n", value1, operator, value2, answer);
+		printw("\n%.0f %c %.0f = ?\nAnswer:\n", value1, operator, value2);
 		scanw(" %lf", &playerAnswer);
 		playerAnswer = floorf(playerAnswer * 100 + 0.5) / 100;
 		if (playerAnswer == answer)
@@ -119,6 +162,11 @@ struct player playGame()
 	}
 	time(&gameStop);
 	gamePlayer.time = difftime(gameStop, gameStart);
+	scoreFileTest();
+	sprintf(highScoreText, "\n%s:\nDifficulty: %i\nScore: %i\nTime: %.0f\n", gamePlayer.name, gamePlayer.difficulty, gamePlayer.score, gamePlayer.time);
+	highScore = fopen(fileHighScore, "a");
+	fprintf(highScore, highScoreText);
+	fclose(highScore);
 	return gamePlayer;
 }
 
@@ -127,11 +175,13 @@ int main()
 	struct player mainPlayer;
 	bool mainLoop = true;
 	char userInput;
+	strcpy(fileHighScore, "Highscore.txt");
 	initscr();
+	scrollok(stdscr, TRUE);
 	while (mainLoop)
 	{
 		clrscr();
-		printw("########################\nWelcome to Simple Figures!\n########################\n");
+		printw("############################\nWelcome to Simple Figures!\n############################\n");
 		printw("Options:\nP:\tPlay Game\nV:\tView Score Log\nQ:\tQuit\n");
 		refresh();
 		userInput = getch();
@@ -140,6 +190,10 @@ int main()
 			mainPlayer = playGame();
 			printw("\n%s played %i questions with a difficulty of %i and obtained a score of %i in %.0f seconds!", mainPlayer.name, mainPlayer.questions, mainPlayer.difficulty, mainPlayer.score, mainPlayer.time);
 			pressContinue();
+		}
+		else if (userInput == 'v' || userInput == 'V')
+		{
+			viewHighScore();
 		}
 		else if (userInput == 'q' || userInput == 'Q')
 		{
