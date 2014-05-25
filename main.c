@@ -1,10 +1,18 @@
 #include<stdio.h>
-#include<ncurses.h>
+#include<stdlib.h>
+#include<curses.h>
 #include<string.h>
 #include<math.h>
 #include<time.h>
 #include<stdbool.h>
 #include<sys/stat.h>
+#ifdef _WIN32
+	#include<windows.h>
+#else
+	#include<unistd.h>
+#endif
+
+
 char fileHighScore[14];
 
 struct player
@@ -83,8 +91,8 @@ struct player playGame()
 	char gameMessage[64];
 	char flt1[32], flt2[32];
 	char highScoreText[64];
-    time_t gameStart;
-    time_t gameStop;
+        time_t gameStart;
+        time_t gameStop;
 	srand(time(NULL));
 	gamePlayer.score = 0;
 	clrscr();
@@ -161,9 +169,10 @@ struct player playGame()
 			strcpy(gameMessage, "Incorrect answer!");
 	}
 	time(&gameStop);
-	gamePlayer.time = difftime(gameStop, gameStart);
+	/*gamePlayer.time = difftime(gameStop, gameStart);*/
+	gamePlayer.time = gameStop - gameStart;
 	scoreFileTest();
-	sprintf(highScoreText, "\n%s:\nDifficulty: %i\nScore: %i\nTime: %.0f\n", gamePlayer.name, gamePlayer.difficulty, gamePlayer.score, gamePlayer.time);
+	sprintf(highScoreText, "\n%s:\nDifficulty: %i\nScore: %i\nTime: %.0lf\n", gamePlayer.name, gamePlayer.difficulty, gamePlayer.score, gamePlayer.time);
 	highScore = fopen(fileHighScore, "a");
 	fprintf(highScore, highScoreText);
 	fclose(highScore);
